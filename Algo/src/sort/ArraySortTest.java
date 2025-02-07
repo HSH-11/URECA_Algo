@@ -16,7 +16,7 @@ public class ArraySortTest {
 //		//String
 //		String[] strArray = {"Hello","ABC","World","UPlus"};
 //		System.out.println(Arrays.toString(strArray));
-//		Arrays.sort(strArray,Collections.reverseOrder()); // 오름차순
+//	Arrays.sort(strArray,Collections.reverseOrder()); // 오름차순
 //		System.out.println(Arrays.toString(strArray));
 		
 		//사용자 정의 클래스
