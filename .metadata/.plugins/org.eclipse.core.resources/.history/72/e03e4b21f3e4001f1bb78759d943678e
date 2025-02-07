@@ -1,0 +1,24 @@
+package recursive;
+
+public class Test {
+	
+	public static void main(String[] args) {
+//		m1();
+		m1_param(0);
+	}
+	
+	static int m1_i = 0;
+	static void m1() {
+		// local 변수 <- 재귀 호출마다 스택에 만들어짐
+//		int i = 0;
+//		System.out.println("m1() "+ i++);
+		//static 변수 <= 재귀호출마다 공유하기 때문에 m1_i값 증가
+		System.out.println("m1() "+ m1_i++);
+		m1();//또다른 stack메모리 사용
+	}
+	static void m1_param(int i) {
+		//파라미터 변수
+		System.out.println("m1_param()"+ i++);
+		m1_param(i);
+	}
+}

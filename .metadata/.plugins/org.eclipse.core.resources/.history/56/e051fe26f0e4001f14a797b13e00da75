@@ -1,0 +1,86 @@
+package basic;
+
+import java.io.*;
+import java.util.Scanner;
+
+public class IOTest {
+    static int TEST_SIZE = 100_000;  // 입력 크기 조절
+    static final String FILE_PATH = "src/basic/input.txt"; // 파일 경로
+
+    public static void generateFile() throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_PATH));
+
+        for (int i = 1; i <= 1_000_000_000; i++) {  // 1부터 10억까지
+            writer.write(Integer.toString(i));
+            writer.newLine();  // 각 숫자 뒤에 줄바꿈 추가
+        }
+
+        writer.close();  // 파일 쓰기 종료
+        System.out.println("파일이 성공적으로 생성되었습니다: " + FILE_PATH);
+    }
+
+    public static void main(String[] args) throws IOException {
+        // 파일 생성 코드 호출 (파일 생성 후 실행)
+        generateFile();
+
+        // 파일 읽기 및 성능 측정 부분
+        File file = new File(FILE_PATH);
+        if (!file.exists()) {
+            System.err.println("파일이 존재하지 않습니다: " + FILE_PATH);
+            return;
+        }
+
+        // 1. Scanner + System.out.print (숫자 출력 제거)
+        Scanner scanner = new Scanner(new File(FILE_PATH));
+        long start = System.nanoTime();
+        int count = 0;
+        while (scanner.hasNextInt() && count < TEST_SIZE) {
+            scanner.nextInt();  // 숫자는 읽지만 출력하지 않음
+            count++;
+        }
+        long end = System.nanoTime();
+        System.out.println("Scanner + print: " + (end - start) / 1_000_000.0 + "ms");
+        scanner.close();
+
+        // 2. Scanner + BufferedWriter (숫자 출력 제거)
+        scanner = new Scanner(new File(FILE_PATH));  // 새로운 Scanner 생성
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+        start = System.nanoTime();
+        count = 0;
+        while (scanner.hasNextInt() && count < TEST_SIZE) {
+            scanner.nextInt();  // 숫자는 읽지만 출력하지 않음
+            count++;
+        }
+        bw.flush();  // BufferedWriter는 비워주지만 출력 없음
+        end = System.nanoTime();
+        System.out.println("Scanner + BufferedWriter: " + (end - start) / 1_000_000.0 + "ms");
+        scanner.close();
+        bw.flush();  // 기존에 있던 잘못된 코드
+
+        // 3. BufferedReader + System.out.print (숫자 출력 제거)
+        BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(FILE_PATH)));
+        start = System.nanoTime();
+        count = 0;
+        String line;
+        while ((line = br.readLine()) != null && count < TEST_SIZE) {
+            count++;
+        }
+        end = System.nanoTime();
+        System.out.println("BufferedReader + print: " + (end - start) / 1_000_000.0 + "ms");
+        br.close();
+
+        // 4. BufferedReader + BufferedWriter (숫자 출력 제거)
+        br = new BufferedReader(new InputStreamReader(new FileInputStream(FILE_PATH)));
+        bw = new BufferedWriter(new OutputStreamWriter(System.out));
+        start = System.nanoTime();
+        count = 0;
+        while ((line = br.readLine()) != null && count < TEST_SIZE) {
+            count++;
+        }
+        bw.flush();
+        end = System.nanoTime();
+        System.out.println("BufferedReader + BufferedWriter: " + (end - start) / 1_000_000.0 + "ms");
+        br.close();
+        bw.close();
+    }
+}
