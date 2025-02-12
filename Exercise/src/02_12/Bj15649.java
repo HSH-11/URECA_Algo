@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.IOException;
 
-public class Main {
+public class Bj15649 {
     static int N, M;  
     static boolean[] select;
 

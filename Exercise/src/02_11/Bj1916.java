@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.PriorityQueue;
 import java.util.StringTokenizer;
 
-public class Main {
+public class Bj1916 {
 	
 	static ArrayList<Node>[] graph;
 	static int INF = Integer.MAX_VALUE;
