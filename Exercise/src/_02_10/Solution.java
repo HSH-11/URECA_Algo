@@ -1,4 +1,4 @@
-package pg64061;
+package _02_10;
 
 import java.util.ArrayDeque;
 import java.util.Deque;

@@ -1,4 +1,4 @@
-package bj1074;
+package _02_12;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

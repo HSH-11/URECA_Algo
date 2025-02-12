@@ -1,4 +1,4 @@
-package bj1158;
+package _02_11;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
