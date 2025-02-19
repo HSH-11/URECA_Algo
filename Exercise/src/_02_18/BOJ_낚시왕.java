@@ -6,102 +6,141 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-// 시물레이션
-// 3 가지 큰 처리가 반복 ( 낚시왕이 이동해서 상어를 잡는다. => 상어들이 이동 => 겹치는 상어들 정리 )
-// Shark 5개 필드를 가지는 클래스 정의
-// 이차원 배열 + ArrayList  사용
-// s (스피드) 에 따른 상어 각각의 이동시 s 만큼 움직이면 시간 손해 
-// =>좌우 또는 상하 이동 과정에서 제자리로 복귀하는 count  미리 계산해서 s (스피드) 를 나눈 나머지만 실제로 이동
-public class BOJ_낚시왕 {
-	static int R, C, M, sum; // 잡은 상어크기의 합
-	static Shark[][] map;
-	static List<Shark> list = new ArrayList<>();
+/*<문제 분석>
+ * -격자칸에 상어는 최대 1마리
+ * -상어는 크기,속도(방향+속력)를 가짐
+ * -낚시왕은 왼쪽에서 오른쪽으로 이동하며 상어를 잡음
+ * -상어가 이동할 때 경계를 넘으면 방향을 반대로 바꿈
+ * -한 칸에 여러 상어가 겹치면 크기가 큰 상어만 남음
+ * <동작 순서>
+ * 1.낚시왕을 (1,1)에서 시작하여 오른쪽으로 한 칸씩 이동
+ * 2.현재 열에서 가장 가까운 상어를 잡고 크기를 합산
+ * 3.모든 상어를 이동
+ * 4.이동 후 같은 칸에 있는 상어 중 가장 큰 상어만 남김
+ * 5.낚시왕이 오른쪽 끝에 도달하면 종료
+*/
 
-	// 상->하->우->좌 (순서 필요)
+/*<의사코드>
+ * 1. 맵 및 상어 정보 입력
+ * 2. 낚시왕이 이동하면서 해당 작업을 반복
+ * 	- 현재 열에서 가장 가까운 상어 찾기->크기 더한후,제거
+ *  - 모든 상어 이동(경계처리,방향 변경)
+ *  - 이동한 상어의 위치를 맵에 반영
+ * 	- 같은 위치에 있는 상어 중 가장 큰 것만 남기기
+ * 3. 최종적으로 잡은 상어의 크기의 합을 출력
+ * */
+// 계속해서 변하는 상어들의 위치를 어떤 자료구조에 저장? => 리스트 이용
+
+public class BOJ_낚시왕 {
+
+	static int R, C, M, sum;
+	static Shark[][] map; // 상어 배치
+	static List<Shark> list = new ArrayList<>(); // 존재하는 상어들의 정보
+
+	// 상->하->우->좌
 	static int[] dy = { -1, 1, 0, 0 };
 	static int[] dx = { 0, 0, 1, -1 };
 
+	static class Shark {
+		int r, c, s, d, z; // 위치,속력,방향,크기
+
+		public Shark(int r, int c, int s, int d, int z) {
+			this.r = r;
+			this.c = c;
+			this.s = s;
+			this.d = d;
+			this.z = z;
+		}
+
+	}
+
 	public static void main(String[] args) throws Exception {
-		// 입력, 자료구조
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		StringTokenizer st = new StringTokenizer(br.readLine());
 		R = Integer.parseInt(st.nextToken());
 		C = Integer.parseInt(st.nextToken());
 		M = Integer.parseInt(st.nextToken());
 
-		map = new Shark[R + 1][C + 1]; // 0 dummy
-
+		// 맵 및 상어 정보 입력
+		map = new Shark[R + 1][C + 1]; // 문제와 인덱스 맞추기
 		for (int i = 0; i < M; i++) {
 			st = new StringTokenizer(br.readLine());
 			int r = Integer.parseInt(st.nextToken());
 			int c = Integer.parseInt(st.nextToken());
 			int s = Integer.parseInt(st.nextToken());
-			int d = Integer.parseInt(st.nextToken()); // 이동방향
-			int z = Integer.parseInt(st.nextToken()); // 크기
+			int d = Integer.parseInt(st.nextToken()) - 1; // 이동방향을 0-based로 변경
+			int z = Integer.parseInt(st.nextToken());
 
-			Shark shark = new Shark(r, c, s, d - 1, z); // 문제의 상하우좌 가 1234로 된 부분 보정
-			list.add(shark); // 상어 정보 저장
-			map[r][c] = shark; // 상어 위치
+			Shark shark = new Shark(r, c, s, d, z);
+			list.add(shark);
+			map[r][c] = shark;
 		}
-		// 상어 잡기 시작
-		// 반복횟수( 컬럼 길이 ) 고정 => for
+
+		// 낚시왕이 상어 잡기 시작
 		for (int i = 1; i <= C; i++) {
-			catchShark(i); // col 전달
+			catchShark(i); // i번째 열 상어 잡기
 			moveShark();
-			killShark(); // 같은 위치의 상어 처리
+			killShark();
 		}
-
+		
 		System.out.println(sum);
 	}
 
-	// 현재 자리에서 상어 잡기
+	// 땅과 가장 거리가 가까운 상어 잡기
 	static void catchShark(int col) {
-		// 밑으로(row) 내려가면서 상어를 만나면 sum 추가, list 제거 (정제), 뒤에서 한꺼번에 list를 이용해서 map 정리한다.
+		// 밑으로 탐색하며 가장 거리가 가까운 상어를 만나면 sum에 추가
+		// 상어 목록에서 제거
 		for (int i = 1; i <= R; i++) {
-			if (map[i][col] != null) { // 상어를 발견하면
-				sum += map[i][col].z;
-				list.remove(map[i][col]);
+			if (map[i][col] != null) { // 상어가 존재하는 칸이면
+				sum += map[i][col].z; // sum에 추가
+				list.remove(map[i][col]); // 상어 목록에서 제거
 				break;
 			}
 		}
 	}
 
-	// 상어들이 이동
-	// map이 아닌 ArrayList에서 진행
+	// 상어를 잡는 행위 이후 상어들의 이동
 	static void moveShark() {
-		for (Shark shark : list) {
+		for (Shark shark : list) { //존재하는 상어들의 좌표 갱신
 			int r = shark.r;
 			int c = shark.c;
 			int s = shark.s;
 			int d = shark.d;
-
-			switch (d) {
-			// 상하, 좌우 따로 나누어서 각 R, C 를 이용해서 제자리로 오는 계산을 이용한 보정
-
+			int z = shark.z;
+			
+			switch(d) {
+			// 상하,좌우 따로 나누어서 계산
+			
 			// 상하(R 이용)
-			case 0:
+			case 0: // 1과 계산 방식 동일
 			case 1:
-				s = s % (R * 2 - 2); // shark 객체의 s 는 변화 X
-				for (int i = 0; i < s; i++) { // r 만 고려
-					if (r == 1)
-						d = 1; // 꼭대기 : 상 => 하
-					else if (r == R)
-						d = 0; // 바닥 : 하 => 상
+				s = s % (R * 2 - 2); // 주기성을 이용해 이동 횟수를 줄임
+				// 상어가 R만큼 이동하면 끝에 도달하고 다시 R만큼 이동하면 처음 위치로 돌아오는데
+				// 맨 끝과 처음 위치는 중복되므로 -2
+				for (int i = 0; i < s; i++) {
+					if (r == 1) {
+						d = 1; //꼭대기 : 상->하
+					}
+					else if (r == R) {
+						d = 0; //바닥 : 하->상
+					}
 					r += dy[d];
 				}
 				shark.r = r;
 				shark.d = d;
 				break;
-
+				
 			// 우좌(C 이용)
 			case 2:
 			case 3:
 				s = s % (C * 2 - 2);
-				for (int i = 0; i < s; i++) { // c 만 고려
-					if (c == 1)
-						d = 2; // 왼쪽끝 : 좌 => 우
-					else if (c == C)
-						d = 3; // 오른쪽끝 : 우 => 좌
+				for (int i = 0; i < s; i++) {
+					if (c == 1) {
+						d = 2; //왼끝 : 좌->우
+					}
+					else if (c == C) {
+						d = 3; //오른쪽 끝 : 우->좌
+					}
 					c += dx[d];
 				}
 				shark.c = c;
@@ -110,44 +149,36 @@ public class BOJ_낚시왕 {
 			}
 		}
 	}
-
-	// 같은 위치의 큰 상어가 작은 상어를 잡아 먹는다.
-	// list (정제된) shark 데이터를 이용해서 map[][] 초기화
+	
+	// 같은 위치의 큰 상어가 작은 상어를 잡아 먹는다
+	// 현존하는 상어를 담은 list를 이용해 map 초기화
 	static void killShark() {
-		// map null 초기화
+		//기존 map 정보 초기화
 		for (int i = 1; i <= R; i++) {
 			for (int j = 1; j <= C; j++) {
 				map[i][j] = null;
 			}
 		}
-
-		// list 로부터 정제된(계산된) Shark 객체를 하나씩 처리
-		// 겹치는 상어에 대한 처리 (삭제는 list에서 처리)
+		
+		// list로부터 shark를 하나씩 처리
 		int size = list.size();
 		for (int i = size - 1; i >= 0; i--) {
-			Shark s = list.get(i);
-
-			if (map[s.r][s.c] == null) { // 초기화 후 빈 공간일 경우 처음 온 shark
-				map[s.r][s.c] = s;
-			} else if (s.z > map[s.r][s.c].z) { // // 초기화 후 먼저 자리잡은 shark 가 있다. 꺼낸 s.z 가 더 큰 경우
-				// map[s.r][s.c] 를 삭제
-				list.remove(map[s.r][s.c]);
-				map[s.r][s.c] = s;
-			} else { // 이미 자리잡은 상어를 그대로 두고 꺼낸 s 삭제
-				list.remove(s);
+			Shark shark = list.get(i);
+			
+			
+			if (map[shark.r][shark.c] == null) {//상어의 위치가 겹치지 않는 경우
+				map[shark.r][shark.c] = shark; 
+			}
+			else if(shark.z > map[shark.r][shark.c].z) {
+				//상어가 겹치는 경우 나중에 들어온 상어가 더 큰 경우
+				//기존 상어 삭제 및 새 상어 map에 반영
+				list.remove(map[shark.r][shark.c]); //기존 객체 삭제
+				map[shark.r][shark.c] = shark;
+			}else {
+				// 이미 존재하던 상어를 냅두고 꺼낸 상어 삭제
+				list.remove(shark);
 			}
 		}
 	}
 
-	static class Shark {
-		int r, c, s, d, z;
-
-		Shark(int r, int c, int s, int d, int z) {
-			this.r = r;
-			this.c = c;
-			this.s = s;
-			this.d = d;
-			this.z = z;
-		}
-	}
 }
